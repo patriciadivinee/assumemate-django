@@ -1,0 +1,189 @@
+{% extends "base/base.html" %}
+{% load static %}
+{% block content %}
+
+<link rel="stylesheet" href="{% static 'css/teb.css' %}">
+<div class="container">
+    <div class="row">
+        <div class="col bg-white rounded mx-2 my-2 px-3 py-1">
+            <div class="d-flex justify-content-center mx-0">
+                <div class="row w-50">
+                    <div class="input-group input-group-sm my-3 border border-dark" style="border-radius: 20px; height: 45px;">
+                        <div class="input-group-prepend align-self-center">
+                            <span class="input-group-text bg-transparent border border-0"><i class="fa-solid fa-magnifying-glass"></i></span>
+                        </div>
+                        <input id="search_input" type="text" oninput="hasText()" class="form-control border-0 shadow-none" aria-label="Small" aria-describedby="inputGroup-sizing-sm" placeholder="Search">
+                        <div class="input-group-prepend ml-3 align-self-center">
+                            <span class="input-group-text bg-transparent m-0 border border-0">
+                                <button id="clear_btn" onclick="clearText()" class="btn btn-sm m-0 border border-0 circle" style="display:none;">
+                                    <i id="clear-mark" class="fa-solid fa-circle-xmark"></i>
+                                </button>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                <div class="row mx-3">
+                    <div class="input-group input-group-sm my-3 p-0 border border-dark" style="border-radius:20px;">
+                        <select id="category_list" class="form-select border border-0" style="border-radius:20px;" aria-label="Default select example" onchange="filterAdmins()">
+                            <option selected value="all">---All---</option>
+                            <option value="Active">Active</option>
+                            <option value="Inactive">Inactive</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="d-flex mt-1 px-3 justify-content-between">
+                <div class="row mt-2">
+                    <p class="h4">Admin List <span class="h5 font-weight-bold text-primary">{{ admin|length }}</span></p>
+                </div>
+                <div class="p-2">
+                    <a href="/account/admin/create" class="btn btn-lg btn-success" style="background-color: #4A8AF0; border: 2px solid #4A8AF0; color: white; border-radius: 10px; padding: 12px 24px;">
+                        <span><i class="fa-solid fa-plus"></i>&nbsp;&nbsp;&nbsp;Add Admin</span>
+                    </a>
+                </div>
+            </div>
+            <br>
+            <div class="col px-2 pt-1">
+                <table id="admin_list" class="table table-sm table-bordered" width="100%">
+                    <thead>
+                        <tr>
+                            <th class="fs-9 text-center" width="20%">ID</th>
+                            <th class="fs-9 text-center" width="20%">Fullname</th>
+                            <th class="fs-9 text-center" width="20%">Email Address</th>
+                            <th class="fs-9 text-center" width="20%">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for admin in admin %}
+                            <tr>
+                                <td class="marquee" style="text-align: center;">{{ admin.id }}</td>
+                                <td class="marquee">{{ admin.profile.user_prof_fname }} {{ admin.profile.user_prof_lname }}</td>
+                                <td class="marquee">{{ admin.email }}</td>
+                                <td class="marquee" style="text-align: center;">
+                                    <button type="button" class="btn btn-sm btn-info" data-toggle="modal" data-target="#AdminModal" data-admin-id="{{ admin.id }}"><i class="fa-regular fa-eye"></i></button>
+                                    {% if admin.is_active %}
+                                        <a class="btn btn-sm btn-danger" href="{% url 'admin_deactivate' admin.id %}">
+                                            <i class="fa-regular fa-trash-can"></i>
+                                        </a>
+                                    {% else %}
+                                        <a class="btn btn-sm" href="{% url 'admin_activate' admin.id %}" style="background-color: green; color: white; border: none;">
+                                            <i class="fas fa-recycle"></i>
+                                        </a>
+                                    {% endif %}
+
+                                </td>
+                                
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal -->
+<div class="modal fade" id="AdminModal" role="dialog">
+    <div class="modal-dialog">
+        <!-- Modal content-->
+        <div class="modal-content p-2">
+            <div class="modal-body" id="adminDetailsBody"></div>
+        </div>
+    </div>
+</div>
+
+<!-- jQuery -->
+<script src='https://code.jquery.com/jquery-3.7.0.js'></script>
+<!-- Data Table JS -->
+<script src='https://cdn.datatables.net/1.13.5/js/jquery.dataTables.min.js'></script>
+<script src='https://cdn.datatables.net/responsive/2.1.0/js/dataTables.responsive.min.js'></script>
+<script src='https://cdn.datatables.net/1.13.5/js/dataTables.bootstrap5.min.js'></script>
+<script src="{% static 'scripts/reviewer.js' %}"></script>
+<script>
+ $(document).ready(function () {
+    // Function to handle the eye icon button click for admins
+    function attachAdminEyeIconClickEvent() {
+        $('.btn-info').on('click', function () {
+            var adminId = $(this).data('admin-id');
+            // Perform an AJAX request to get admin details
+            $.ajax({
+                url: '/admin_details/' + adminId, // Corrected variable name
+                type: 'GET',
+                success: function (data) {
+                    // Update the modal body with the admin details
+                    $('#adminDetailsBody').html(data);
+                    // Show the modal
+                    $('#AdminModal').modal('show');
+                },
+                error: function (error) {
+                    console.log('Error fetching admin details:', error);
+                }
+            });
+        });
+    }
+
+    // Initially attach the click event
+    attachAdminEyeIconClickEvent();
+
+    // Handle the category dropdown change event
+    $('#category_list').on('change', function () {
+        var selectedStatus = $(this).val();
+        
+        // Send AJAX request with selected status
+        $.ajax({
+            url: '{% url "admin_acc_list" %}', // Ensure this URL matches the view URL name
+            type: 'GET',
+            data: {
+                status: selectedStatus
+            },
+            success: function (data) {
+                // Update the table with the filtered data
+                $('#admin_list').html($(data).find('#admin_list').html());
+                // Reattach the eye icon click event
+                attachAdminEyeIconClickEvent();
+            },
+            error: function (error) {
+                console.log('Error filtering admins:', error);
+            }
+        });
+    });
+});
+
+
+$(document).ready(function () {
+    // Handle search input
+    $('#search_input').on('input', function () {
+        var searchValue = $(this).val().toLowerCase();
+        $('#admin_list tbody tr').each(function () {
+            var row = $(this);
+            var id = row.find('td').eq(0).text().toLowerCase();
+            var fullname = row.find('td').eq(1).text().toLowerCase();
+            var email = row.find('td').eq(2).text().toLowerCase();
+            
+            if (id.includes(searchValue) || fullname.includes(searchValue) || email.includes(searchValue)) {
+                row.show();
+            } else {
+                row.hide();
+            }
+        });
+        
+        // Toggle clear button visibility
+        if (searchValue) {
+            $('#clear_btn').show();
+        } else {
+            $('#clear_btn').hide();
+        }
+    });
+
+    // Handle clear button
+    $('#clear_btn').on('click', function () {
+        $('#search_input').val('');
+        $('#search_input').trigger('input'); // Trigger input event to clear search
+    });
+});
+
+
+
+</script>
+
+{% endblock content %}
