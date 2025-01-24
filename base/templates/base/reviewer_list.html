@@ -114,9 +114,7 @@ $(document).ready(function () {
                 url: '/reviewer_details/' + revId, // Corrected variable name
                 type: 'GET',
                 success: function (data) {
-                    // Update the modal body with the reviewer details
                     $('#reviewerDetailsBody').html(data);
-                    // Show the modal
                     $('#ReviewerModal').modal('show');
                 },
                 error: function (error) {
